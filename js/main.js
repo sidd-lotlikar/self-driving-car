@@ -1,3 +1,6 @@
+import { Car } from "./classes/Car.js";
+import { Road } from "./classes/Road.js";
+
 const canvas = document.getElementById("mainCanvas");
 canvas.width = 200;
 

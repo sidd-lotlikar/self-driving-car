@@ -6,6 +6,6 @@
  * @param {number} t - The interpolation factor (0 returns A, 1 returns B, values in between return a point between A and B).
  * @returns {number} The interpolated value between A and B.
  */
-function lerp(A, B, t) {
+export function lerp(A, B, t) {
   return A + (B - A) * t;
 }

@@ -1,4 +1,6 @@
-class Car {
+import { Controls } from "./Controls.js";
+
+export class Car {
   /**
    *
    * @param {number} x - The horizontal position of the car relative to the canvas.
