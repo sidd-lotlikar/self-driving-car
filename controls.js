@@ -28,7 +28,6 @@ class Controls {
           this.downward = true;
           break;
       }
-      console.table(this);
     };
 
     /**
@@ -50,7 +49,6 @@ class Controls {
           this.downward = false;
           break;
       }
-      console.table(this);
     };
   }
 }
