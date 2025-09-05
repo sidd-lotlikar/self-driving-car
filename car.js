@@ -24,14 +24,16 @@ class Car {
   }
 
   update() {
+    this.#move();
+  }
+
+  #move() {
     // Move Forward and Downward
     if (this.controls.forward) {
       this.speed += this.acceleration;
-      this.y -= 2;
     }
     if (this.controls.downward) {
       this.speed -= this.acceleration;
-      this.y += 2;
     }
     // Move Left and Right
     if (this.speed != 0) {
@@ -62,7 +64,7 @@ class Car {
     }
     // Update the position based on the changes of the angle and speed
     this.x -= Math.sin(this.angle) * this.speed;
-    this.y -= Math.cos(this.angle) * this.speed;
+    this.y -= Math.cos(this.angle) * this.speed; // y-axis grows downward (unlike traditional math graphs where y goes upward)
   }
 
   /**
@@ -74,6 +76,7 @@ class Car {
     drawingContext.translate(this.x, this.y);
     drawingContext.rotate(-this.angle);
 
+    drawingContext.fillStyle = "rgba(255, 0, 0, 0.5)"; // semi-transparent red
     drawingContext.beginPath();
     drawingContext.rect(
       -this.width / 2,
