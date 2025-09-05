@@ -1,5 +1,4 @@
 const canvas = document.getElementById("mainCanvas");
-canvas.height = window.innerHeight;
 canvas.width = 200;
 
 const drawingContext = canvas.getContext("2d");
@@ -11,3 +10,12 @@ const carWidth = 50;
 const car = new Car(carX, carY, carHeight, carWidth);
 
 car.draw(drawingContext);
+
+animate();
+
+function animate() {
+  car.update();
+  canvas.height = window.innerHeight;
+  car.draw(drawingContext);
+  requestAnimationFrame(animate);
+}
