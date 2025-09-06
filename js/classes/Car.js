@@ -1,4 +1,5 @@
 import { Controls } from "./Controls.js";
+import { Sensor } from "./Sensors.js";
 
 export class Car {
   /**
@@ -23,10 +24,13 @@ export class Car {
     this.angle = 0;
     // Controls
     this.controls = new Controls();
+    // Sensors
+    this.sensor = new Sensor(this);
   }
 
   update() {
     this.#move();
+    this.sensor.update();
   }
 
   #move() {
@@ -89,5 +93,7 @@ export class Car {
     drawingContext.fill();
 
     drawingContext.restore();
+
+    this.sensor.draw(drawingContext);
   }
 }
