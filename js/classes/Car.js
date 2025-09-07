@@ -1,5 +1,6 @@
 import { Controls } from "./Controls.js";
 import { Sensor } from "./Sensors.js";
+import { polysIntersect } from "../utils/utils.js";
 
 export class Car {
   /**
@@ -25,6 +26,7 @@ export class Car {
     this.maxSpeed = 3; // maximum allowed speed
     this.friction = 0.05; // natural slowdown (simulates drag/rolling resistance)
     this.angle = 0; // car orientation in radians
+    this.damaged = false; // tracks whether the car has collided
 
     // Input controls (keyboard arrows)
     this.controls = new Controls();
@@ -39,8 +41,60 @@ export class Car {
    * @param {Array<Array<{x: number, y: number}>>} roadBoarders - Array of road boundaries.
    */
   update(roadBoarders) {
-    this.#move(); // update motion
-    this.sensor.update(roadBoarders); // update sensor intersections
+    if (!this.damaged) {
+      this.#move(); // update motion based on controls and physics
+      this.polygon = this.#createPolygon(); // update car's polygon shape for collision detection
+      this.damaged = this.#assessDamaged(roadBoarders); // check for collisions with road boundaries
+    }
+    this.sensor.update(roadBoarders); // update sensor intersections regardless of damage
+  }
+
+  /**
+   * Checks if the car has collided with any road boundaries.
+   * @param {Array<Array<{x: number, y: number}>>} roadBoarders - Array of road boundary polygons
+   * @returns {boolean} - True if collision detected, false otherwise
+   */
+  #assessDamaged(roadBoarders) {
+    for (let i = 0; i < roadBoarders.length; i++) {
+      if (polysIntersect(this.polygon, roadBoarders[i])) {
+        return true; // collision detected
+      }
+    }
+    return false; // no collision
+  }
+
+  /**
+   * Calculates the four corner points of the car based on position and angle.
+   * Used for collision detection and rendering.
+   * @returns {Array<{x: number, y: number}>} - Corner points of the car polygon
+   */
+  #createPolygon() {
+    const points = [];
+    const radius = Math.hypot(this.width, this.height) / 2; // distance from center to corner
+    const alpha = Math.atan2(this.width, this.height); // angle between center and corner
+
+    // Top-left corner
+    points.push({
+      x: this.x - Math.sin(this.angle - alpha) * radius,
+      y: this.y - Math.cos(this.angle - alpha) * radius,
+    });
+    // Top-right corner
+    points.push({
+      x: this.x - Math.sin(this.angle + alpha) * radius,
+      y: this.y - Math.cos(this.angle + alpha) * radius,
+    });
+    // Bottom-left corner
+    points.push({
+      x: this.x - Math.sin(Math.PI + this.angle - alpha) * radius,
+      y: this.y - Math.cos(Math.PI + this.angle - alpha) * radius,
+    });
+    // Bottom-right corner
+    points.push({
+      x: this.x - Math.sin(Math.PI + this.angle + alpha) * radius,
+      y: this.y - Math.cos(Math.PI + this.angle + alpha) * radius,
+    });
+
+    return points;
   }
 
   /**
@@ -54,10 +108,10 @@ export class Car {
   #move() {
     // --- Acceleration ---
     if (this.controls.forward) {
-      this.speed += this.acceleration;
+      this.speed += this.acceleration; // increase speed when moving forward
     }
     if (this.controls.downward) {
-      this.speed -= this.acceleration;
+      this.speed -= this.acceleration; // decrease speed when moving backward
     }
 
     // --- Steering ---
@@ -75,21 +129,21 @@ export class Car {
 
     // --- Speed limits ---
     if (this.speed > this.maxSpeed) {
-      this.speed = this.maxSpeed;
+      this.speed = this.maxSpeed; // cap forward speed
     }
     if (this.speed < -this.maxSpeed / 2) {
-      this.speed = -this.maxSpeed / 2; // reverse speed capped to half
+      this.speed = -this.maxSpeed / 2; // cap reverse speed to half
     }
 
-    // --- Friction (gradual slowdown) ---
+    // --- Friction ---
     if (this.speed > 0) {
-      this.speed -= this.friction;
+      this.speed -= this.friction; // reduce speed gradually
     }
     if (this.speed < 0) {
-      this.speed += this.friction;
+      this.speed += this.friction; // reduce backward speed gradually
     }
     if (Math.abs(this.speed) < this.friction) {
-      this.speed = 0; // prevent endless tiny movement
+      this.speed = 0; // prevent small oscillating movement
     }
 
     // --- Position update based on angle ---
@@ -105,26 +159,20 @@ export class Car {
    * @param {CanvasRenderingContext2D} drawingContext - The canvas drawing context.
    */
   draw(drawingContext) {
-    drawingContext.save();
+    // Change color if damaged
+    if (this.damaged) {
+      drawingContext.fillStyle = "orange";
+    } else {
+      drawingContext.fillStyle = "rgba(255, 0, 0, 0.5)";
+    }
 
-    // Move drawing origin to car’s position
-    drawingContext.translate(this.x, this.y);
-
-    // Rotate canvas so car points in the correct direction
-    drawingContext.rotate(-this.angle);
-
-    // Draw car rectangle (semi-transparent red)
-    drawingContext.fillStyle = "rgba(255, 0, 0, 0.5)";
+    // Draw car polygon
     drawingContext.beginPath();
-    drawingContext.rect(
-      -this.width / 2, // center rectangle horizontally
-      -this.height / 2, // center rectangle vertically
-      this.width,
-      this.height
-    );
+    drawingContext.moveTo(this.polygon[0].x, this.polygon[0].y);
+    for (let i = 1; i < this.polygon.length; i++) {
+      drawingContext.lineTo(this.polygon[i].x, this.polygon[i].y);
+    }
     drawingContext.fill();
-
-    drawingContext.restore();
 
     // Draw sensor rays on top of car
     this.sensor.draw(drawingContext);

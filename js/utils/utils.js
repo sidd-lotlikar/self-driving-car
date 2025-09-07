@@ -47,3 +47,29 @@ export function getIntersection(A, B, C, D) {
 
   return null; // No intersection within segment bounds
 }
+
+/**
+ * Checks if two polygons intersect.
+ *
+ * @param {Array<{x: number, y: number}>} poly1 - First polygon as an array of points
+ * @param {Array<{x: number, y: number}>} poly2 - Second polygon as an array of points
+ * @returns {boolean} - True if polygons intersect, false otherwise
+ */
+export function polysIntersect(poly1, poly2) {
+  for (let i = 0; i < poly1.length; i++) {
+    for (let j = 0; j < poly2.length; j++) {
+      const touch = getIntersection(
+        poly1[i], // start point of current edge in poly1
+        poly1[(i + 1) % poly1.length], // end point of current edge in poly1 (wraps around)
+        poly2[j], // start point of current edge in poly2
+        poly2[(j + 1) % poly2.length] // end point of current edge in poly2 (wraps around)
+      );
+
+      if (touch) {
+        return true; // polygons collide
+      }
+    }
+  }
+
+  return false; // polygons do not collide
+}
