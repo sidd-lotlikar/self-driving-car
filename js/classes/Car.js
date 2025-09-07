@@ -11,7 +11,7 @@ export class Car {
    * @param {number} width - The width of the car.
    * @param {number} height - The height of the car.
    */
-  constructor(x, y, width, height) {
+  constructor(x, y, width, height, maxSpeed = 3, controlType) {
     // Position
     this.x = x;
     this.y = y;
@@ -20,19 +20,21 @@ export class Car {
     this.width = width;
     this.height = height;
 
-    // Motion physics
+    // Motion physics - in the future some of these variables will be in the constructor
     this.speed = 0; // current velocity
     this.acceleration = 0.2; // how fast it speeds up
-    this.maxSpeed = 3; // maximum allowed speed
+    this.maxSpeed = maxSpeed; // maximum allowed speed
     this.friction = 0.05; // natural slowdown (simulates drag/rolling resistance)
     this.angle = 0; // car orientation in radians
     this.damaged = false; // tracks whether the car has collided
+    this.steeringSensitivity = 0.03; // how sharply the car turns per update (radians per frame)
 
+    if (controlType != "DUMMY") {
+      // Sensor system
+      this.sensor = new Sensor(this);
+    }
     // Input controls (keyboard arrows)
-    this.controls = new Controls();
-
-    // Sensor system
-    this.sensor = new Sensor(this);
+    this.controls = new Controls(controlType);
   }
 
   /**
@@ -40,13 +42,15 @@ export class Car {
    *
    * @param {Array<Array<{x: number, y: number}>>} roadBoarders - Array of road boundaries.
    */
-  update(roadBoarders) {
+  update(roadBoarders, traffic) {
     if (!this.damaged) {
       this.#move(); // update motion based on controls and physics
       this.polygon = this.#createPolygon(); // update car's polygon shape for collision detection
-      this.damaged = this.#assessDamaged(roadBoarders); // check for collisions with road boundaries
+      this.damaged = this.#assessDamaged(roadBoarders, traffic); // check for collisions with road boundaries and traffic
     }
-    this.sensor.update(roadBoarders); // update sensor intersections regardless of damage
+    if (this.sensor) {
+      this.sensor.update(roadBoarders, traffic); // update sensor intersections regardless of damage
+    }
   }
 
   /**
@@ -54,9 +58,14 @@ export class Car {
    * @param {Array<Array<{x: number, y: number}>>} roadBoarders - Array of road boundary polygons
    * @returns {boolean} - True if collision detected, false otherwise
    */
-  #assessDamaged(roadBoarders) {
+  #assessDamaged(roadBoarders, traffic) {
     for (let i = 0; i < roadBoarders.length; i++) {
       if (polysIntersect(this.polygon, roadBoarders[i])) {
+        return true; // collision detected
+      }
+    }
+    for (let i = 0; i < traffic.length; i++) {
+      if (polysIntersect(this.polygon, traffic[i].polygon)) {
         return true; // collision detected
       }
     }
@@ -120,10 +129,10 @@ export class Car {
       const flip = this.speed > 0 ? 1 : -1;
 
       if (this.controls.left) {
-        this.angle += 0.03 * flip; // turn left
+        this.angle += this.steeringSensitivity * flip; // turn left
       }
       if (this.controls.right) {
-        this.angle -= 0.03 * flip; // turn right
+        this.angle -= this.steeringSensitivity * flip; // turn right
       }
     }
 
@@ -175,6 +184,8 @@ export class Car {
     drawingContext.fill();
 
     // Draw sensor rays on top of car
-    this.sensor.draw(drawingContext);
+    if (this.sensor) {
+      this.sensor.draw(drawingContext);
+    }
   }
 }

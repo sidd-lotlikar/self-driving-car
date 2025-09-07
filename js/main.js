@@ -15,19 +15,36 @@ const carX = road.getLaneCenter(1);
 const carY = 100;
 const carHeight = 30;
 const carWidth = 50;
-const car = new Car(carX, carY, carHeight, carWidth);
+const maxCarSpeed = 3;
+const carControlType = "KEYS";
+const car = new Car(
+  carX,
+  carY,
+  carHeight,
+  carWidth,
+  maxCarSpeed,
+  carControlType
+);
+// Define the Traffic
+const traffic = [new Car(road.getLaneCenter(1), -100, 30, 50, 2, "DUMMY")];
 
 animate();
 
 function animate() {
-  car.update(road.borders);
+  traffic.forEach((car) => {
+    car.update(road.borders, []);
+  });
+  car.update(road.borders, traffic);
 
   canvas.height = window.innerHeight;
 
-  drawingContext.save();
+  drawingContext.save();  
   drawingContext.translate(0, -car.y + canvas.height * 0.7);
 
   road.draw(drawingContext);
+  traffic.forEach((car) => {
+    car.draw(drawingContext);
+  });
   car.draw(drawingContext);
 
   drawingContext.restore();

@@ -3,7 +3,7 @@ export class Controls {
    * Handles keyboard input for controlling the car.
    * Tracks four directional states: forward, backward (downward), left, right.
    */
-  constructor() {
+  constructor(type) {
     // Control states (pressed = true, not pressed = false)
     this.forward = false;
     this.left = false;
@@ -11,7 +11,14 @@ export class Controls {
     this.downward = false;
 
     // Set up event listeners for key presses
-    this.#addKeyboardListeners();
+    switch (type) {
+      case "KEYS":
+        this.#addKeyboardListeners();
+        break;
+      case "DUMMY":
+        this.forward = true;
+        break;
+    }
   }
 
   /**

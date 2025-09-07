@@ -13,10 +13,10 @@ export class Sensor {
     this.car = car;
 
     // Number of rays to cast (like multiple "sightlines")
-    this.rayCount = 3;
+    this.rayCount = 5;
 
     // Maximum length of each ray
-    this.rayLength = 100;
+    this.rayLength = 150;
 
     // The angular spread of rays (in radians) — wider spread = wider vision
     this.raySpread = Math.PI / 4; // 45 degrees
@@ -34,7 +34,7 @@ export class Sensor {
    * @param {Array<Array<{x: number, y: number}>>} roadBoarders - List of road borders,
    *        where each border is a line segment represented by two points [A, B].
    */
-  update(roadBoarders) {
+  update(roadBoarders, traffic) {
     // Generate rays based on car position and orientation
     this.#castRays();
 
@@ -43,7 +43,9 @@ export class Sensor {
 
     // For each ray, calculate the nearest intersection with road borders
     for (let i = 0; i < this.rays.length; i++) {
-      this.readings.push(this.#getReadings(this.rays[i], roadBoarders));
+      this.readings.push(
+        this.#getReadings(this.rays[i], roadBoarders, traffic)
+      );
     }
   }
 
@@ -55,7 +57,7 @@ export class Sensor {
    * @returns { {x: number, y: number, offset: number} | null } - The closest intersection point,
    *           or null if no intersection.
    */
-  #getReadings(ray, roadBoarders) {
+  #getReadings(ray, roadBoarders, traffic) {
     let touches = [];
 
     // Check intersection with every road border
@@ -68,6 +70,22 @@ export class Sensor {
       );
       if (touch) {
         touches.push(touch);
+      }
+    }
+
+    // Check intersection with the traffic
+    for (let i = 0; i < traffic.length; i++) {
+      const poly = traffic[i].polygon;
+      for (let j = 0; j < poly.length; j++) {
+        const value = getIntersection(
+          ray[0],
+          ray[1],
+          poly[j],
+          poly[(j + 1) % poly.length]
+        );
+        if (value) {
+          touches.push(value);
+        }
       }
     }
 
