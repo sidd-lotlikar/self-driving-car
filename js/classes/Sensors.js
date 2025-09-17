@@ -19,7 +19,7 @@ export class Sensor {
     this.rayLength = 150;
 
     // The angular spread of rays (in radians) — wider spread = wider vision
-    this.raySpread = Math.PI / 4; // 45 degrees
+    this.raySpread = Math.PI / 2; // 45 degrees
 
     // Stores all rays (each ray is [startPoint, endPoint])
     this.rays = [];

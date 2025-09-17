@@ -73,3 +73,21 @@ export function polysIntersect(poly1, poly2) {
 
   return false; // polygons do not collide
 }
+
+/**
+ * Converts a numeric value (-1 to 1) into an RGBA color string.
+ *
+ * - Positive values is red
+ * - Negative values is blue
+ * - Alpha (transparency) = absolute value (stronger color for larger magnitude)
+ *
+ * @param {number} value - Number in range [-1, 1] representing weight/activation.
+ * @returns {string} RGBA color string usable in canvas drawing.
+ */
+export function getRGBA(value) {
+  const alpha = Math.abs(value); // Transparency proportional to magnitude
+  const R = value < 0 ? 0 : 255; // Red for positive values
+  const G = R; // G matches R (gives red/white gradient)
+  const B = value > 0 ? 0 : 255; // Blue for negative values
+  return "rgba(" + R + "," + G + "," + B + "," + alpha + ")";
+}
