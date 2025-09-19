@@ -35,7 +35,7 @@ const traffic = [new Car(road.getLaneCenter(1), -100, 30, 50, 2, "DUMMY")];
 
 animate();
 
-function animate() {
+function animate(time) {
   traffic.forEach((car) => {
     car.update(road.borders, []);
   });
@@ -55,6 +55,7 @@ function animate() {
 
   carCtx.restore();
 
+  networkCtx.lineDashOffset = -time / 50;
   Visualizer.drawNetwork(networkCtx, car.neuralNetwork);
   requestAnimationFrame(animate);
 }
