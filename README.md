@@ -1,7 +1,7 @@
-#  Math & AI Concepts Behind the Self-Driving Car Simulation
+# Math, AI, and Rendering Concepts Behind the Self-Driving Car Simulation
 
-This document explains the **mathematical foundations**, **AI techniques**, and **design decisions** used to build this project.  
-Rather than just describing the code, this walks through the **problem → approach → solution** process to show how each piece came together.
+This document explains the **math**, **AI techniques**, and **rendering system** used in this project.  
+Instead of just describing the code, it walks through the **problem → approach → solution** process to show how each piece came together.
 
 ---
 
@@ -14,12 +14,13 @@ We need:
 - Collision detection with road borders and traffic
 - A way for the car to "see" its environment
 - An AI brain that can make steering and throttle decisions in real time
+- A rendering system that visualizes everything clearly
 
 ---
 
 ## The Approach
 
-Our approach was to break the problem into layers:
+We broke the problem into layers:
 
 1. **Car Physics:** Model the car as a moving rectangle with speed, friction, and steering.
 2. **Environment:** Represent the road and traffic as polygons.
@@ -33,50 +34,63 @@ Our approach was to break the problem into layers:
 
 ### 1. Trigonometry for Motion
 
-We use basic trigonometry to update car position based on its angle:
+We update the car's position based on its angle and speed:
 
 ```
 x -= sin(angle) * speed
 y -= cos(angle) * speed
 ```
 
-This allows the car to move **in the direction it’s facing**, not just up/down/left/right.
+This means the car moves in the direction it is facing rather than just left/right/up/down.
 
-<p align="center">
-  <img src="https://i.imgur.com/rGh9uyn.png" width="350" alt="Trigonometry Diagram"/>
-</p>
+---
 
 ### 2. Polygon Collision Detection
 
-- The car is represented as a **rotated polygon** (4 corner points).
-- Road borders and traffic cars are also polygons.
-- We check for intersections between polygons using a custom `polysIntersect()` function.
+Each car is represented as a four-point polygon.  
+Each frame, we check:
 
-<p align="center">
-  <img src="https://i.imgur.com/PlA7G3a.png" width="450" alt="Polygon Collision Detection"/>
-</p>
+```
+if polysIntersect(carPolygon, borderPolygon):
+    car.damaged = true
+```
+
+This ensures collisions with road borders or traffic cars stop the car.
+
+---
 
 ### 3. Linear Interpolation (`lerp`)
 
-We use `lerp()` to:
-
-- Space out **lane centers**
-- Evenly distribute **sensor rays** between leftmost and rightmost angles
+We use `lerp` to space out lane centers and sensor rays evenly:
 
 ```
 lerp(A, B, t) = A + (B - A) * t
 ```
 
-This gives smooth, evenly spaced points.
+Example: if `A=0`, `B=100`, and `t=0.5`, result = 50 (middle point).
+
+---
 
 ### 4. Ray Casting (Virtual Sensors)
 
-Each sensor ray extends outward from the car and stops at the first collision.  
-We then normalize its distance (0 = no hit, 1 = very close) to feed into the neural network.
+For each ray:
 
-<p align="center">
-  <img src="https://i.imgur.com/dYd0Y9D.png" width="500" alt="Ray Casting Visual"/>
-</p>
+```
+start = car position
+end   = start + direction * rayLength
+check intersections with borders/traffic
+take closest intersection as sensor reading
+```
+
+Output is normalized to [0, 1] where 1 = very close.
+
+ASCII representation:
+
+```
+Car --> |-----------x
+        ^           ^
+      start      intersection
+```
 
 ---
 
@@ -84,56 +98,89 @@ We then normalize its distance (0 = no hit, 1 = very close) to feed into the neu
 
 ### Architecture
 
-We built a **lightweight feed-forward neural network** from scratch:
+We built a very small feed-forward network:
 
-<p align="center">
-  <img src="https://i.imgur.com/XBoG5TJ.png" width="500" alt="Neural Network Diagram"/>
-</p>
+```
+Inputs (5)  -->  Hidden Layer (6)  -->  Outputs (4)
+[sensor rays]    [weighted sums]      [F / L / R / B]
+```
 
-- **Inputs:** One per sensor ray (5 total)
-- **Hidden Layer:** 6 neurons
-- **Outputs:** 4 neurons → forward, left, right, reverse
+Where outputs map to controls:  
+`[Forward, Left, Right, Backward]`.
 
 ### Algorithm
 
 For each layer:
 
-1. Compute weighted sum of inputs:  
-   \( sum = \sum input*i \times weight*{i,j} \)
-2. Compare with bias → output is **1** if `sum > bias`, otherwise \*\*0`.
+```
+sum = Σ(input[i] * weight[i][j])
+if sum > bias[j]: output[j] = 1
+else:             output[j] = 0
+```
 
-This produces a binary decision for each control.
+This gives a set of binary on/off signals that control the car.
 
 ---
 
-## Visualization
+## Canvas Rendering System
 
-We draw everything on a canvas to make debugging intuitive:
+### 1. Camera and Translation
 
-- Car polygons (turn orange when damaged)
-- Road borders & lanes
-- Sensor rays (yellow until they hit something)
-- Neural network activity (colored connections based on weight sign & strength)
+We "move" the camera instead of the road by translating the canvas context:
 
-<p align="center">
-  <img src="https://i.imgur.com/gyQWUpK.png" width="500" alt="Canvas Visualization Example"/>
-</p>
+```
+ctx.translate(0, -car.y + canvas.height * 0.7)
+```
+
+This keeps the car near the bottom of the screen while the world scrolls past.
+
+---
+
+### 2. Draw Order
+
+Each frame is drawn in this order:
+
+```
+1. Road and lane markers
+2. Traffic cars
+3. Player/AI car
+4. Sensor rays (so they appear above everything else)
+```
+
+This ensures a clean, layered look.
+
+---
+
+### 3. Neural Network Visualization
+
+We also draw the network live:
+
+```
+(inputs) ---o---o---o--- (hidden layer) ---o---o--- (outputs)
+     \       |    |           |   |                  \------o----o-----------o---o-------------o
+```
+
+- Lines change color based on weight sign (+ = red, - = blue)
+- Line transparency shows strength
+- Output nodes light up when active
+
+This makes the "thinking process" of the AI visible.
 
 ---
 
 ## Solution & Learning Outcomes
 
-By combining **math (trigonometry, geometry, interpolation)** and **AI (neural networks)**, we created a working simulation where cars can drive themselves.
+By combining **geometry**, **trigonometry**, **ray casting**, and a **tiny neural network**,  
+we created a self-driving car simulation that runs entirely in the browser.
 
-**Key takeaways:**
+### Key Takeaways
 
-- Geometry + simple physics = believable vehicle movement
-- Ray casting is a powerful way to simulate perception
-- Even a tiny neural network can control a car in real time
-- Visualizing data makes debugging and learning much easier
+- Geometry + simple physics = believable vehicle motion
+- Ray casting is a lightweight way to simulate sensors
+- Even a small network can control a car
+- Canvas lets us visualize both the simulation and the AI brain in real time
+- Debugging becomes easier when you can see what the AI "sees"
 
-This project serves as a foundation for experimenting with **genetic algorithms**, **reinforcement learning**, or more advanced planning strategies.
+This project is a great foundation for experimenting with genetic algorithms or reinforcement learning to evolve better drivers.
 
 ---
-
-> **Next Steps:** Try evolving the neural network weights over generations to make better drivers!
