@@ -164,8 +164,8 @@ export class Car {
   /**
    * Draws the car and its sensors on the canvas.
    */
-  draw(drawingContext) {
-    drawingContext.fillStyle = this.damaged ? "orange" : "rgba(255, 0, 0, 0.5)";
+  draw(drawingContext, color, drawSensor = false) {
+    drawingContext.fillStyle = this.damaged ? "orange" : color;
 
     drawingContext.beginPath();
     drawingContext.moveTo(this.polygon[0].x, this.polygon[0].y);
@@ -174,7 +174,7 @@ export class Car {
     }
     drawingContext.fill();
 
-    if (this.sensor) {
+    if (this.sensor && drawSensor) {
       this.sensor.draw(drawingContext);
     }
   }
